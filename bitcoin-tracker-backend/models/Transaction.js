@@ -1,0 +1,16 @@
+const mongoose = require("mongoose");
+
+const transactionSchema = new mongoose.Schema(
+  {
+    userApiKey: { type: String, required: true }, //Para autenticação por usuário
+    type: { type: String, enum: ["compra", "venda"], required: true },
+    date: { type: Date, default: Date.now },
+    btcAmount: { type: Number, required: true },
+    brlPricePerBtc: { type: Number, required: true }, //Preço unitário em BRL
+    totalBrl: { type: Number, required: true }, //Total da transação em BRL
+    notes: { type: String },
+  },
+  { timestamps: true },
+);
+
+module.exports = mongoose.model("Transaction", transactionSchema);

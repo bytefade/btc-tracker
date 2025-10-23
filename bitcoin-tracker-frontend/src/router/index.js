@@ -24,14 +24,6 @@ const routes = [
     path: "/dashboard",
     name: "Dashboard",
     component: Dashboard,
-    beforeEnter: (to, from, next) => {
-      const token = localStorage.getItem("apiKey");
-      if (!token || !isValidJwtFormat) {
-        next("/login");
-      } else {
-        next();
-      }
-    },
   },
 ];
 
@@ -45,12 +37,21 @@ router.beforeEach((to, from, next) => {
   const token = localStorage.getItem("apiKey");
   const isAuthenticated = token && isValidJwtFormat(token);
 
+  console.log(
+    "Rota acessada: ",
+    to.path,
+    "Token: ",
+    token ? "Presente" : "Ausente",
+    "Autenticado: ",
+    isAuthenticated
+  );
+
   if (to.path === "/login" && isAuthenticated) {
     next("/dashboard"); //Se logado, não permite acessar login
   } else if (to.path !== "/login" && !isAuthenticated) {
     next("/login"); //Se não logado, força login
   } else {
-    next();
+    next(); //Mantém na rota atual
   }
 });
 

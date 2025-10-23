@@ -42,7 +42,9 @@
             {{ t.type.charAt(0).toUpperCase() + t.type.slice(1) }}
           </td>
           <td class="py-2 px-4">
-            {{ new Date(t.date).toLocaleDateString("pt-BR") }}
+            {{
+              new Date(t.date).toLocaleDateString("pt-BR", { timeZone: "UTC" })
+            }}
           </td>
           <td class="py-2 px-4">{{ t.btcAmount.toFixed(4) }}</td>
           <td class="py-2 px-4">
@@ -65,11 +67,11 @@
         </tr>
       </tbody>
     </table>
-    <div v-if="summary.monthySales" class="mt-4 p-4 bg-orange-50 rounded-lg">
+    <div v-if="summary.monthlySales" class="mt-4 p-4 bg-orange-50 rounded-lg">
       <p class="text-gray-800 font-medium">
         Total Vendido no Mês: R$
         {{
-          summary.monthySales.toLocaleString("pt-BR", {
+          summary.monthlySales.toLocaleString("pt-BR", {
             style: "currency",
             currency: "BRL",
           })
@@ -82,7 +84,7 @@
         {{
           summary.isExempt
             ? "✅ Isento de IR (<= R$ 35.000)"
-            : "⚠️ Acima de R$ 35.000 - Tribuável!"
+            : "⚠️ Acima de R$ 35.000 - Tributável."
         }}
       </p>
     </div>

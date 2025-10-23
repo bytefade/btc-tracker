@@ -79,7 +79,7 @@ const addTransaction = async () => {
     store.fetchTransactions();
     form.value = {
       type: "compra",
-      date: new Date().toISOString.split("T")[0],
+      date: new Date().toISOString().split("T")[0],
       btcAmount: 0,
       brlPricePerBtc: 0,
       notes: "",

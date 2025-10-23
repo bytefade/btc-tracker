@@ -100,11 +100,11 @@ router.get("/", authenticateToken, async (req, res) => {
     const monthlySales = transactions
       .filter((t) => t.type === "venda")
       .reduce((sum, t) => sum + t.totalBrl, 0);
-    const isExemt = monthlySales <= 35000;
+    const isExempt = monthlySales <= 35000;
 
     console.log("Transações encontradas: ", transactions.lenght);
 
-    res.json({ transactions, summary: { monthlySales, isExemt } });
+    res.json({ transactions, summary: { monthlySales, isExempt } });
   } catch (err) {
     console.error("X erro na listagem", err.message);
     res.status(500).json({ msg: err.message });

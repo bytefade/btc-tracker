@@ -6,6 +6,13 @@ const api = axios.create({
   baseURL: API_BASE,
 });
 
+//Configura token do localStorage no carregamento
+const token = localStorage.getItem("apiKey");
+if (token) {
+  api.defaults.headers.common["x-api-key"] = token;
+  console.log("Token carregado do localStorage: ", token);
+}
+
 export const setApiKey = (apiKey) => {
   api.defaults.headers.common["x-api-key"] = apiKey;
 };

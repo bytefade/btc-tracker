@@ -4,17 +4,18 @@ import api from "../services/api";
 export const useTransactionsStore = defineStore("transactions", {
   state: () => ({
     transactions: [],
-    summary: {},
+    summary: { monthlySales: 0, isExempt: true },
   }),
   actions: {
     async fetchTransactions(month) {
-      console.log(month);
       try {
-        const res = await api.get(`transactions?month=${month}`);
+        console.log("Fetching transações com mês: ", month);
+        const params = month ? { month } : {};
+        const res = await api.get("/transactions", { params });
         this.transactions = res.data.transactions;
         this.summary = res.data.summary;
       } catch (err) {
-        console.error(err);
+        console.error("Erro ao buscar transações: ", err.message);
       }
     },
   },

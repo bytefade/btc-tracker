@@ -16,6 +16,7 @@
       >
         Filtrar Mês
       </button>
+      <!-- <button>Export CSV</button> -->
     </div>
     <div class="overflow-x-auto"></div>
     <table class="min-w-full border border-gray-200">
@@ -92,24 +93,26 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { computed, onMounted } from "vue";
 import { useTransactionsStore } from "../stores/transactions";
 
 const store = useTransactionsStore();
-const selectedMonth = ref(new Date().toISOString().slice(0, 7)); //YYYY-MM
+const selectedMonth = computed({
+  get: () => store.selectedMonth,
+  set: (value) => store.setSelectedMonth(value),
+});
 
 const fetchTransactions = () => {
-  //Valida formato YYYY-MM
   if (!/^\d{4}-\d{2}$/.test(selectedMonth.value)) {
-    console.error("Formato de mês inválido: ", selectedMonth.value);
     selectedMonth.value = new Date().toISOString().slice(0, 7); //Reseta para mês atual
   }
-  console.log("Enviando mês: ", selectedMonth.value);
   store.fetchTransactions(selectedMonth.value);
 };
 
 const transactions = computed(() => store.transactions);
 const summary = computed(() => store.summary);
 
-fetchTransactions(); //Carga inicial
+onMounted(() => {
+  fetchTransactions();
+});
 </script>

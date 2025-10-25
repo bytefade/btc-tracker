@@ -29,6 +29,9 @@
             Preço Unit. (BRL)
           </th>
           <th class="py-2 px-4 text-left text-gray-700 font-semibold">
+            Taxa(BRL)
+          </th>
+          <th class="py-2 px-4 text-left text-gray-700 font-semibold">
             Total(BRL)
           </th>
           <th class="py-2 px-4 text-left text-gray-700 font-semibold">Notas</th>
@@ -51,6 +54,14 @@
           <td class="py-2 px-4">
             {{
               t.brlPricePerBtc.toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              })
+            }}
+          </td>
+          <td class="py-2 px-4">
+            {{
+              t.brokerageFee.toLocaleString("pt-BR", {
                 style: "currency",
                 currency: "BRL",
               })

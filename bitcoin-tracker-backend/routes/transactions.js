@@ -30,8 +30,49 @@ const authenticateToken = (req, res, next) => {
 // POST /api/transaction - Inserir transação
 router.post("/", authenticateToken, async (req, res) => {
   try {
-    const { type, date, btcAmount, brlPricePerBtc, notes } = req.body;
-    const totalBrl = btcAmount * brlPricePerBtc;
+    const {
+      type,
+      date,
+      btcAmount,
+      brlPricePerBtc,
+      brokerageFeeType,
+      brokerageFeeValue,
+      notes,
+    } = req.body;
+
+    // Validações
+    if (!["compra", "venda"].includes(type)) {
+      return res.status(400).json({ msg: 'Tipo deve ser "compra" ou "venda"' });
+    }
+    if (!date || isNaN(new Date(date).getTime())) {
+      return res.status(400).json({ msh: "Data inválida" });
+    }
+    if (!btcAmount || btcAmount <= 0) {
+      return res
+        .status(400)
+        .json({ msg: "Quantidade BTC deve ser maior que 0" });
+    }
+    if (!brlPricePerBtc || brlPricePerBtc <= 0) {
+      return res
+        .status(400)
+        .json({ msg: "Preço unitário deve ser maior que 0" });
+    }
+
+    //Calcula taxa em reais
+    let brokerageFee = 0;
+    if (brokerageFeeType && brokerageFeeValue) {
+      if (brokerageFeeType === "reais") {
+        brokerageFee = Number(brokerageFeeValue);
+      } else if (brokerageFeeType === "porcentagem") {
+        brokerageFee =
+          (Number(brokerageFeeValue) / 100) * (btcAmount * brlPricePerBtc);
+      }
+      if (isNaN(brokerageFee) || brokerageFee < 0) {
+        return res.status(400).json({ msg: "Taxa de corretagem inválida" });
+      }
+    }
+
+    const totalBrl = btcAmount * brlPricePerBtc - brokerageFee;
     const transaction = new Transaction({
       userApiKey: req.userApiKey,
       type,
@@ -39,6 +80,7 @@ router.post("/", authenticateToken, async (req, res) => {
       btcAmount,
       brlPricePerBtc,
       totalBrl,
+      brokerageFee,
       notes,
     });
     await transaction.save();

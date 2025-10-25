@@ -8,6 +8,7 @@ const transactionSchema = new mongoose.Schema(
     btcAmount: { type: Number, required: true },
     brlPricePerBtc: { type: Number, required: true }, //Preço unitário em BRL
     totalBrl: { type: Number, required: true }, //Total da transação em BRL
+    brokerageFee: { type: Number, default: 0 }, //Taxa em reais
     notes: { type: String },
   },
   { timestamps: true },

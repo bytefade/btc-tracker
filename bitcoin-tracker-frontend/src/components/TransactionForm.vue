@@ -21,22 +21,34 @@
       <div class="relative">
         <input
           v-model="form.btcAmount"
-          type="number"
+          v-mask="'#.########'"
+          type="text"
           placeholder="Quantidade BTC"
           step="0.0001"
           class="border border-gray-300 rounded-lg p-2 focus:ouline-none focus-ring-2 focus:ring-orange-500 w-full"
+          :class="
+            errors.btcAmount
+              ? 'border-red-500 focus:ring-red-500'
+              : 'border-gray-300 focus:ring-orange-500'
+          "
           required
         />
-        <p v-if="errors.btcAmount" class="text-red-500 text-xs mt-1">
+        <p v-if="errors.btcAmount" class="text-red-500 text-xs mt-1 absolute">
           {{ errors.btcAmount }}
         </p>
       </div>
       <div class="relative">
         <input
           v-model="form.brlPricePerBtc"
-          type="number"
+          v-mask="'###.###.###,##'"
+          type="text"
           placeholder="Preço unitário (BRL)"
           class="border border-gray-300 rounded-lg p-2 focus:ouline-none focus-ring-2 focus:ring-orange-500 w-full"
+          :class="
+            errors.brlPricePerBtc
+              ? 'border-red-500 focus:ring-red-500'
+              : 'border-gray-300 focus:ring-orange-500'
+          "
           required
         />
         <p
@@ -44,6 +56,40 @@
           class="text-red-500 text-xs mt-1 absolute"
         >
           {{ errors.brlPricePerBtc }}
+        </p>
+      </div>
+      <div class="relative">
+        <select
+          v-model="form.brokerageFeeType"
+          class="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 w-full"
+        >
+          <option value="">Sem taxa</option>
+          <option value="reais">Taxa em Reais</option>
+          <option value="porcentagem">Taxa em %</option>
+        </select>
+      </div>
+      <div class="relative" v-if="form.brokerageFeeType">
+        <input
+          v-model="form.brokerageFeeValue"
+          :v-mask="form.brokerageFeeType === 'reais' ? '###.###,##' : '#,##'"
+          :placeholder="
+            form.brokerageFeeType === 'reais'
+              ? 'Taxa (ex: 1,99)'
+              : 'Taxa % (ex: 0,50)'
+          "
+          class="w-full border rounded-lg p-2 focus:outline-none focus: ring-2"
+          :class="
+            errors.brokerageFeeValue
+              ? 'border-red-500 focus:ring-red-500'
+              : 'border-gray-300 focus:ring-orange-500'
+          "
+          type="text"
+        />
+        <p
+          v-if="errors.brokerageFeeValue"
+          class="text-red-500 text-xs mt-1 absolute"
+        >
+          {{ errors.brokerage.FeeValue }}
         </p>
       </div>
       <textarea
@@ -76,6 +122,8 @@
 
 <script setup>
 import { ref, reactive } from "vue";
+// eslint-disable-next-line
+import { mask } from "vue-the-mask";
 import api from "../services/api";
 import { useTransactionsStore } from "../stores/transactions";
 
@@ -85,12 +133,15 @@ const form = reactive({
   date: new Date().toISOString().split("T")[0],
   btcAmount: "",
   brlPricePerBtc: "",
+  brokerageFeeType: "",
+  brokerageFeeValue: "",
   notes: "",
 });
 
 const errors = reactive({
   btcAmount: "",
   brlPricePerBtc: "",
+  brokerageFeeValue: "",
 });
 
 const isSubmitting = ref(false);
@@ -102,17 +153,37 @@ const validateForm = () => {
   //Limpa erros anteriores
   errors.btcAmount = "";
   errors.brlPricePerBtc = "";
+  errors.brokerageFeeValue = "";
 
-  //Valida campos
-  if (!form.btcAmount || form.btcAmount <= 0) {
+  //Valida btcAmounr
+  const btcAmount = parseFloat(form.btcAmount.replace(",", "."));
+  if (isNaN(btcAmount) || btcAmount <= 0) {
     errors.btcAmount = "Quantidade BTC deve ser maior que 0.";
     valid = false;
   }
-  if (!form.brlPricePerBtc || form.brlPricePerBtc <= 0) {
+
+  // Valida brlPricePerBtc
+  const brlPricePerBtc = parseFloat(
+    form.brlPricePerBtc.replace(".", "").replace(",", ".")
+  );
+  if (isNaN(brlPricePerBtc) || brlPricePerBtc <= 0) {
     errors.brlPricePerBtc = "Preço unitário deve ser maior que 0.";
     valid = false;
   }
-  if (!form.date) {
+
+  //Valida brokerageFeeValue
+  if (form.brokerageFeeType) {
+    const feeValue = parseFloat(form.brokerageFeeValue.replace(",", "."));
+    if (isNaN(feeValue) || feeValue < 0) {
+      errors.brokerageFeeValue =
+        form.brokerageFeeType === "reais"
+          ? "Taxa em reais deve ser válida"
+          : "Taxa em % deve ser válida";
+      valid = false;
+    }
+  }
+
+  if (!form.date || isNaN(new Date(form.date).getTime())) {
     errorMessage.value = "Data é obrigatória";
     valid = false;
   }
@@ -124,14 +195,32 @@ const addTransaction = async () => {
   errorMessage.value = "";
   errors.btcAmount = "";
   errors.brlPricePerBtc = "";
+  errors.brokerageFeeValue = "";
 
   if (!validateForm()) return;
 
   isSubmitting.value = true;
 
   try {
-    const totalBrl = form.btcAmount * form.brlPricePerBtc;
-    await api.post("/transactions", { ...form, totalBrl });
+    const btcAmount = parseFloat(form.btcAmount.replace(",", "."));
+    const brlPricePerBtc = parseFloat(
+      form.brlPricePerBtc.replace(".", "").replace(",", ".")
+    );
+    const brokerageFeeValue = form.brokerageFeeValue
+      ? parseFloat(form.brokerageFeeValue.replace(",", "."))
+      : 0;
+
+    const payload = {
+      type: form.type,
+      date: form.date,
+      btcAmount,
+      brlPricePerBtc,
+      brokerageFeeType: form.brokerageFeeType || undefined,
+      brokerageFeeValue: brokerageFeeValue || undefined,
+      notes: form.notes,
+    };
+
+    await api.post("/transactions", payload);
     successMessage.value = "Transação inserida com sucesso!";
 
     //Atualiza a listagem com o mês da nova transação
@@ -144,6 +233,8 @@ const addTransaction = async () => {
     form.date = new Date().toISOString().split("T")[0];
     form.btcAmount = "";
     form.brlPricePerBtc = "";
+    form.brokerageFeeType = "";
+    form.brokerageFeeValue = "";
     form.notes = "";
   } catch (err) {
     errorMessage.value =

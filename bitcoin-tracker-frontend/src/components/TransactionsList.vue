@@ -1,7 +1,7 @@
 <template>
   <div class="bg-white shadow-md rounded-lg p-6">
     <h2 class="text-xl font-semibold text-gray-800 mb-4">
-      Extrato de transações
+      Extrato de transações (BRL)
     </h2>
     <div class="flex flex-col md:flex-row md-items-center mb-4 gap-2">
       <input
@@ -25,15 +25,9 @@
           <th class="py-2 px-4 text-left text-gray-700 font-semibold">Tipo</th>
           <th class="py-2 px-4 text-left text-gray-700 font-semibold">Data</th>
           <th class="py-2 px-4 text-left text-gray-700 font-semibold">BTC</th>
-          <th class="py-2 px-4 text-left text-gray-700 font-semibold">
-            Preço Unit. (BRL)
-          </th>
-          <th class="py-2 px-4 text-left text-gray-700 font-semibold">
-            Taxa(BRL)
-          </th>
-          <th class="py-2 px-4 text-left text-gray-700 font-semibold">
-            Total(BRL)
-          </th>
+          <th class="py-2 px-4 text-left text-gray-700 font-semibold">Preço</th>
+          <th class="py-2 px-4 text-left text-gray-700 font-semibold">Taxa</th>
+          <th class="py-2 px-4 text-left text-gray-700 font-semibold">Total</th>
           <th class="py-2 px-4 text-left text-gray-700 font-semibold">Notas</th>
         </tr>
       </thead>
@@ -50,12 +44,14 @@
               new Date(t.date).toLocaleDateString("pt-BR", { timeZone: "UTC" })
             }}
           </td>
-          <td class="py-2 px-4">{{ t.btcAmount.toFixed(4) }}</td>
+          <td class="py-2 px-4">{{ formatBtc(t.btcAmount) }}</td>
           <td class="py-2 px-4">
             {{
               t.brlPricePerBtc.toLocaleString("pt-BR", {
                 style: "currency",
                 currency: "BRL",
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
               })
             }}
           </td>
@@ -64,6 +60,8 @@
               t.brokerageFee.toLocaleString("pt-BR", {
                 style: "currency",
                 currency: "BRL",
+                minimumFractionsDigits: 2,
+                maximumFractionDigits: 2,
               })
             }}
           </td>
@@ -72,6 +70,8 @@
               t.totalBrl.toLocaleString("pt-BR", {
                 style: "currency",
                 currency: "BRL",
+                minimumFractionsDigits: 2,
+                maximumFractionDigits: 2,
               })
             }}
           </td>
@@ -86,6 +86,8 @@
           summary.monthlySales.toLocaleString("pt-BR", {
             style: "currency",
             currency: "BRL",
+            minimumFractionsDigits: 2,
+            maximumFractionsDigits: 2,
           })
         }}
       </p>
@@ -112,6 +114,13 @@ const selectedMonth = computed({
   get: () => store.selectedMonth,
   set: (value) => store.setSelectedMonth(value),
 });
+
+const formatBtc = (value) => {
+  if (!value) return "0,00000000";
+  const num = Number(value);
+  const str = num.toFixed(8).replace(".", ",");
+  return str.replace(/,0+$/, ""); //Remove zeros à direita
+};
 
 const fetchTransactions = () => {
   if (!/^\d{4}-\d{2}$/.test(selectedMonth.value)) {

@@ -21,16 +21,15 @@
       <div class="relative">
         <input
           v-model="form.btcAmount"
-          v-mask="'#.########'"
           type="text"
           placeholder="Quantidade BTC"
-          step="0.0001"
           class="border border-gray-300 rounded-lg p-2 focus:ouline-none focus-ring-2 focus:ring-orange-500 w-full"
           :class="
             errors.btcAmount
               ? 'border-red-500 focus:ring-red-500'
               : 'border-gray-300 focus:ring-orange-500'
           "
+          @input="formatBtcAmount"
           required
         />
         <p v-if="errors.btcAmount" class="text-red-500 text-xs mt-1 absolute">
@@ -40,7 +39,6 @@
       <div class="relative">
         <input
           v-model="form.brlPricePerBtc"
-          v-mask="'###.###.###,##'"
           type="text"
           placeholder="Preço unitário (BRL)"
           class="border border-gray-300 rounded-lg p-2 focus:ouline-none focus-ring-2 focus:ring-orange-500 w-full"
@@ -49,6 +47,7 @@
               ? 'border-red-500 focus:ring-red-500'
               : 'border-gray-300 focus:ring-orange-500'
           "
+          @input="formatBrl"
           required
         />
         <p
@@ -71,10 +70,9 @@
       <div class="relative" v-if="form.brokerageFeeType">
         <input
           v-model="form.brokerageFeeValue"
-          :v-mask="form.brokerageFeeType === 'reais' ? '###.###,##' : '#,##'"
           :placeholder="
             form.brokerageFeeType === 'reais'
-              ? 'Taxa (ex: 1,99)'
+              ? 'Taxa R$(ex: 1,99)'
               : 'Taxa % (ex: 0,50)'
           "
           class="w-full border rounded-lg p-2 focus:outline-none focus: ring-2"
@@ -84,6 +82,11 @@
               : 'border-gray-300 focus:ring-orange-500'
           "
           type="text"
+          @input="
+            form.brokerageFeeType === 'reais'
+              ? formatBrl($event, 'brokerageFeeValue')
+              : formatPercentage
+          "
         />
         <p
           v-if="errors.brokerageFeeValue"
@@ -122,8 +125,6 @@
 
 <script setup>
 import { ref, reactive } from "vue";
-// eslint-disable-next-line
-import { mask } from "vue-the-mask";
 import api from "../services/api";
 import { useTransactionsStore } from "../stores/transactions";
 
@@ -148,6 +149,40 @@ const isSubmitting = ref(false);
 const successMessage = ref("");
 const errorMessage = ref("");
 
+const formatBtcAmount = (event) => {
+  let value = event.target.value.replace(/^0-9.]/g, ""); //Apenas números e ponto
+  const parts = value.split(".");
+  if (parts.length > 2) {
+    value = `${parts[0]}.${parts[1].slice(0, 8)}`; //Máximo 8 decimais
+  }
+  return (form.btcAmount = value);
+};
+
+const formatBrl = (event, field = "brlPricePerBtc") => {
+  let value = event.target.value.replace(/[^0-9]/g, ""); //Apenas números
+  if (!value) {
+    form[field] = "";
+    return;
+  }
+  const number = parseFloat(value) / 100; //Divide por 100 para 2 decimais
+  form[field] = number.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
+const formatPercentage = (event) => {
+  let value = event.target.value.replace(/[^0-9.]/g, "");
+  const parts = value.split(".");
+  if (parts.length > 2) {
+    value = `${parts[0]}.${parts[1]}`;
+  }
+  if (parts[1] && parts[1].length > 2) {
+    value = `${parts[0]}.${parts[1].slice(0, 2)}`; //Máximo 2 decimais
+  }
+  form.brokerageFeeValue = value;
+};
+
 const validateForm = () => {
   let valid = true;
   //Limpa erros anteriores
@@ -155,17 +190,17 @@ const validateForm = () => {
   errors.brlPricePerBtc = "";
   errors.brokerageFeeValue = "";
 
-  //Valida btcAmounr
-  const btcAmount = parseFloat(form.btcAmount.replace(",", "."));
+  //Valida btcAmount
+  const btcAmount = parseFloat(form.btcAmount);
   if (isNaN(btcAmount) || btcAmount <= 0) {
     errors.btcAmount = "Quantidade BTC deve ser maior que 0.";
     valid = false;
   }
 
   // Valida brlPricePerBtc
-  const brlPricePerBtc = parseFloat(
-    form.brlPricePerBtc.replace(".", "").replace(",", ".")
-  );
+  const brlPricePerBtc = form.brlPricePerBtc
+    ? parseFloat(form.brlPricePerBtc.replace(/\./g, "").replace(",", "."))
+    : NaN;
   if (isNaN(brlPricePerBtc) || brlPricePerBtc <= 0) {
     errors.brlPricePerBtc = "Preço unitário deve ser maior que 0.";
     valid = false;
@@ -173,7 +208,9 @@ const validateForm = () => {
 
   //Valida brokerageFeeValue
   if (form.brokerageFeeType) {
-    const feeValue = parseFloat(form.brokerageFeeValue.replace(",", "."));
+    const feeValue = form.brokerageFeeValue
+      ? parseFloat(form.brokerageFeeValue.replace(",", "."))
+      : NaN;
     if (isNaN(feeValue) || feeValue < 0) {
       errors.brokerageFeeValue =
         form.brokerageFeeType === "reais"
@@ -183,6 +220,7 @@ const validateForm = () => {
     }
   }
 
+  //Valida data
   if (!form.date || isNaN(new Date(form.date).getTime())) {
     errorMessage.value = "Data é obrigatória";
     valid = false;
@@ -204,7 +242,7 @@ const addTransaction = async () => {
   try {
     const btcAmount = parseFloat(form.btcAmount.replace(",", "."));
     const brlPricePerBtc = parseFloat(
-      form.brlPricePerBtc.replace(".", "").replace(",", ".")
+      form.brlPricePerBtc.replace(/\./g, "").replace(",", ".")
     );
     const brokerageFeeValue = form.brokerageFeeValue
       ? parseFloat(form.brokerageFeeValue.replace(",", "."))

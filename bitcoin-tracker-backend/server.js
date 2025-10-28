@@ -37,5 +37,5 @@ app.get("/health", (req, res) => {
   });
 });
 
-const PORT = 5001;
+const PORT = process.env.PORT;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));

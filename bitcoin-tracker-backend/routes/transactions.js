@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Transaction = require("../models/Transaction");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 
 // Middleware para validar API key (simples, via header 'x-api-key')
 const authenticateToken = (req, res, next) => {
@@ -172,6 +173,33 @@ router.get("/generate-key", (req, res) => {
   } catch (err) {
     console.error("Erro ao gerar JWT; ", err.message);
     res.status(500).json({ msg: "Erro interno ao gerar chave" });
+  }
+});
+
+// DELETE /api/transactions/:id - Excluir transação
+router.delete("/:id", authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ msg: "ID inválido" });
+    }
+
+    const transaction = await Transaction.findOneAndDelete({
+      _id: id,
+      userApiKey: req.userApiKey,
+    });
+
+    if (!transaction) {
+      return res
+        .status(400)
+        .json({ msg: "Transação não encontrada ou não pertence ao usuário" });
+    }
+
+    console.log("Transação excluída: ", id);
+    res.json({ msg: "Transação excluída com sucesso", id });
+  } catch (err) {
+    console.error("Erro ao excluir transação:", err.message);
+    res.status(500).json({ msg: "Erro interno do servidor" });
   }
 });
 

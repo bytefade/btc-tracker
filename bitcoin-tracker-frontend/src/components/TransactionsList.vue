@@ -29,6 +29,7 @@
           <th class="py-2 px-4 text-left text-gray-700 font-semibold">Taxa</th>
           <th class="py-2 px-4 text-left text-gray-700 font-semibold">Total</th>
           <th class="py-2 px-4 text-left text-gray-700 font-semibold">Notas</th>
+          <th class="py-2 px-4 text-left text-gray-700 font-semibold">Ações</th>
         </tr>
       </thead>
       <tbody>
@@ -76,9 +77,39 @@
             }}
           </td>
           <td class="py-2 px-4">{{ t.notes || "-" }}</td>
+          <td class="py-2 px-4">
+            <button
+              @click="openDeleteModal(t._id)"
+              class="text-red-600 hover:text-red-800 transition duration-200"
+              title="Excluir transação"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+            </button>
+          </td>
         </tr>
       </tbody>
     </table>
+
+    <!-- Modal de Confirmação -->
+    <DeleteModal
+      :is-open="showDeleteModal"
+      @close="closeDeleteModal"
+      @confirm="deleteTransaction"
+    />
+
     <div v-if="summary.monthlySales" class="mt-4 p-4 bg-orange-50 rounded-lg">
       <p class="text-gray-800 font-medium">
         Total Vendido no Mês: R$
@@ -106,8 +137,10 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useTransactionsStore } from "../stores/transactions";
+import api from "../services/api";
+import DeleteModal from "./DeleteModal.vue";
 
 const store = useTransactionsStore();
 const selectedMonth = computed({
@@ -115,11 +148,38 @@ const selectedMonth = computed({
   set: (value) => store.setSelectedMonth(value),
 });
 
+const showDeleteModal = ref(false);
+const transactionToDelete = ref(null);
+
 const formatBtc = (value) => {
   if (!value) return "0,00000000";
   const num = Number(value);
   const str = num.toFixed(8).replace(".", ",");
   return str.replace(/,0+$/, ""); //Remove zeros à direita
+};
+
+const openDeleteModal = (id) => {
+  transactionToDelete.value = id;
+  showDeleteModal.value = true;
+};
+
+const closeDeleteModal = () => {
+  showDeleteModal.value = false;
+  transactionToDelete.value = null;
+};
+
+const deleteTransaction = async () => {
+  if (!transactionToDelete.value) return;
+
+  try {
+    await api.delete(`/transactions/${transactionToDelete.value}`);
+    //Atualiza listagem
+    await store.fetchTransactions(selectedMonth.value);
+    closeDeleteModal();
+  } catch (err) {
+    console.error("Erro ao excluir transação:", err);
+    alert("Erro ao excluir transação. Tente novamente.");
+  }
 };
 
 const fetchTransactions = () => {

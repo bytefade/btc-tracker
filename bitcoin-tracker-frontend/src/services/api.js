@@ -1,23 +1,19 @@
 import axios from "axios";
 
-const API_BASE = process.env.VUE_APP_API_BASE || "/api";
-
 const api = axios.create({
-  baseURL: API_BASE,
+  baseURL: process.env.VUE_APP_API_BASE || "/api",
 });
 
-//Configura token do localStorage no carregamento
-const token = localStorage.getItem("apiKey");
-if (token) {
-  api.defaults.headers.common["x-api-key"] = token;
-  console.log("Token carregado do localStorage: ", token);
-}
+//Intercepta TODAS as requisições
+api.interceptors.request.use((config) => {
+  const key = localStorage.getItem("apiKey");
+  if (key) {
+    config.headers["x-api-key"] = key;
+  }
+  return config;
+});
 
-export const setApiKey = (apiKey) => {
-  api.defaults.headers.common["x-api-key"] = apiKey;
-};
-
-// Interceptor erros 401/403 para redirecionar para o login
+// Redireciona em casao de 401/403
 api.interceptors.response.use(
   (response) => response,
   (error) => {

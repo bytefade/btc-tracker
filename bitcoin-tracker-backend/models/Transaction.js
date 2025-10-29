@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const transactionSchema = new mongoose.Schema(
   {
-    userApiKey: { type: String, required: true }, //Para autenticação por usuário
+    userApiKey: { type: String, required: false }, //Para autenticação por usuário
     type: { type: String, enum: ["compra", "venda"], required: true },
     date: { type: Date, default: Date.now },
     btcAmount: { type: Number, required: true },

@@ -27,6 +27,7 @@ router.post("/", authenticate, async (req, res) => {
       date,
       btcAmount,
       brlPricePerBtc,
+      totalBrl,
       brokerageFeeType,
       brokerageFeeValue,
       notes,
@@ -58,15 +59,15 @@ router.post("/", authenticate, async (req, res) => {
       }
     }
 
-    const totalBrl = btcAmount * brlPricePerBtc - brokerageFee;
+    //Usa totalBrl enviado (já calculado no frontend)
+    const finalTotal = totalBrl || btcAmount * brlPricePerBtc - brokerageFee;
 
     const transaction = new Transaction({
-      userApiKey: req.userApiKey,
       type,
       date: new Date(date),
       btcAmount,
       brlPricePerBtc,
-      totalBrl,
+      totalBrl: finalTotal,
       brokerageFee,
       notes,
     });

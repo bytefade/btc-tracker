@@ -86,15 +86,15 @@ router.get("/", authenticate, async (req, res) => {
 
     if (month && /^\d{4}-\d{2}$/.test(month)) {
       const [year, mon] = month.split("-").map(Number);
-      const startDate = new Date(year, mon - 1, 1);
-      const endDate = new Date(year, mon, 0);
+      const start = new Date(Date.UTC(year, mon - 1, 1)); //UTC para evitar fuso
+      const end = new Date(Date.UTC(year, mon, 0, 23, 59, 59, 999)); //Último dia do mês
       filter.date = {
-        $gte: new Date(year, mon - 1, 1),
-        $lt: new Date(year, mon, 0),
+        $gte: start,
+        $lt: end,
       };
     }
 
-    const transactions = await Transaction.find(filter).sort({ date: -1 });
+    const transactions = await Transaction.find(filter).sort({ date: 1 });
 
     const monthlySales = transactions
       .filter((t) => t.type === "venda")
